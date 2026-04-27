@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}Historial de facturación{% endblock %}
+
+{% block content %}
+<h2>Historial de facturación</h2>
+
+{% for period in periods %}
+<details {% if loop.first %}open{% endif %} style="margin-bottom:1rem;">
+  <summary style="cursor:pointer; font-weight:600; display:flex; justify-content:space-between; align-items:center;">
+    <span>{{ period.month_abbr }} {{ period.year }}</span>
+    <span style="font-weight:400; font-size:0.9rem;">
+      <span class="badge badge-green">{{ period.paid }} pagadas</span>
+      <span class="badge badge-orange">{{ period.pending }} pendientes</span>
+      <strong style="margin-left:0.5rem;">Total: $ {{ "{:,.0f}".format(period.total) }}</strong>
+    </span>
+  </summary>
+
+  <div style="display:flex; gap:0.75rem; margin:0.75rem 0 0.5rem;">
+    <a href="/billing/download?month={{ period.month }}&year={{ period.year }}&file_type=recaudo"
+       role="button" style="padding:0.3rem 0.8rem; font-size:0.82rem;">⬇ Recaudo</a>
+    <a href="/billing/download?month={{ period.month }}&year={{ period.year }}&file_type=credito"
+       role="button" class="secondary" style="padding:0.3rem 0.8rem; font-size:0.82rem;">⬇ Crédito</a>
+  </div>
+
+  <table style="font-size:0.88rem;">
+    <thead>
+      <tr>
+        <th>Empresa</th>
+        <th class="text-right">Subtotal (sin IVA)</th>
+        <th class="text-right">Total (c/IVA)</th>
+        <th>Vence</th>
+        <th>Estado</th>
+        <th>Referencia</th>
+        <th>Acción</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for b in period.billings %}
+    <tr>
+      <td><a href="/companies/{{ b.company_id }}">{{ b.company.name }}</a></td>
+      <td class="text-right">$ {{ "{:,.2f}".format(b.subtotal_without_iva | float) }}</td>
+      <td class="text-right"><strong>$ {{ "{:,.0f}".format(b.total_with_iva | float) }}</strong></td>
+      <td>{{ b.payment_deadline.strftime("%d/%m/%Y") if b.payment_deadline else "—" }}</td>
+      <td>
+        {% if b.status == "pagado" %}<span class="badge badge-green">Pagado</span>
+        {% elif b.status == "revisar" %}<span class="badge badge-red">Revisar</span>
+        {% else %}<span class="badge badge-orange">Pendiente</span>{% endif %}
+      </td>
+      <td>{{ b.order_reference or "—" }}</td>
+      <td>
+        {% if b.status == "pendiente" %}
+        <div style="display:flex; gap:0.3rem; align-items:center;">
+          <form method="post" action="/payments/{{ b.id }}/mark-paid" style="display:flex; gap:0.3rem;">
+            <input type="text" name="order_reference" placeholder="Ref." style="width:80px; padding:0.15rem 0.3rem; font-size:0.8rem;">
+            <input type="hidden" name="redirect_to" value="/billing/history">
+            <button type="submit" style="padding:0.15rem 0.5rem; font-size:0.8rem; background:#15803d; border-color:#15803d;">✓</button>
+          </form>
+          <form method="post" action="/payments/{{ b.id }}/mark-review" style="display:inline;">
+            <input type="hidden" name="redirect_to" value="/billing/history">
+            <button type="submit" class="contrast outline" style="padding:0.15rem 0.5rem; font-size:0.8rem;">!</button>
+          </form>
+        </div>
+        {% elif b.status == "revisar" %}
+        <form method="post" action="/payments/{{ b.id }}/mark-pending" style="display:inline;">
+          <input type="hidden" name="redirect_to" value="/billing/history">
+          <button type="submit" class="secondary outline" style="padding:0.15rem 0.5rem; font-size:0.8rem;">↩</button>
+        </form>
+        {% elif b.status == "pagado" %}
+        <form method="post" action="/payments/{{ b.id }}/mark-pending" style="display:inline;">
+          <input type="hidden" name="redirect_to" value="/billing/history">
+          <button type="submit" class="secondary outline" style="padding:0.15rem 0.5rem; font-size:0.8rem;">↩</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</details>
+{% else %}
+<p style="color:var(--pico-muted-color);">Sin facturación generada aún.</p>
+{% endfor %}
+{% endblock %}

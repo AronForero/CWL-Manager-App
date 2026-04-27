@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+{% block title %}Generar facturación{% endblock %}
+
+{% block content %}
+<h2>Facturación {{ month_abbr }} {{ year }}</h2>
+
+<!-- Month/Year selector -->
+<form method="get" action="/billing/" style="display:flex; gap:1rem; align-items:flex-end; margin-bottom:1.5rem;">
+  <label style="margin:0;">
+    Mes
+    <select name="month" style="padding:0.4rem;">
+      {% for m, abbr in [
+        (1,"ENE"),(2,"FEB"),(3,"MAR"),(4,"ABR"),(5,"MAY"),(6,"JUN"),
+        (7,"JUL"),(8,"AGO"),(9,"SEP"),(10,"OCT"),(11,"NOV"),(12,"DIC")
+      ] %}
+      <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ abbr }}</option>
+      {% endfor %}
+    </select>
+  </label>
+  <label style="margin:0;">
+    Año
+    <input type="number" name="year" value="{{ year }}" min="2024" max="2035" style="width:90px; padding:0.4rem;">
+  </label>
+  <button type="submit" style="padding:0.4rem 1rem;">Ver</button>
+</form>
+
+<div class="alert alert-info">
+  <strong>Fecha límite de pago:</strong> {{ payment_deadline.strftime("%d/%m/%Y") }}
+  &nbsp;(último día de {{ month_abbr }} {{ year }})
+</div>
+
+{% if has_existing %}
+<div class="alert alert-warning">
+  ⚠ Ya existe facturación generada para este mes. Si generas de nuevo, se sobreescribirá.
+</div>
+{% endif %}
+
+<!-- Preview Table -->
+<div style="overflow-x:auto;">
+<table>
+  <thead>
+    <tr>
+      <th>Empresa</th>
+      <th>Espacios</th>
+      <th>Tarifa</th>
+      <th class="text-right">Valor Día (sin IVA)</th>
+      <th class="text-right">Subtotal (sin IVA)</th>
+      <th class="text-right">Total (c/IVA)</th>
+      <th>Aviso</th>
+    </tr>
+  </thead>
+  <tbody>
+  {% set ns = namespace(total=0) %}
+  {% for row in preview_rows %}
+  {% set c = row.company %}
+  {% set calc = row.calc %}
+  <tr {% if calc.get("is_over_limit") %}style="opacity:0.5;"{% endif %}>
+    <td>
+      <a href="/companies/{{ c.id }}">{{ c.name }}</a>
+      {% if c.is_fondo_emprender %}<span class="badge badge-blue">FE</span>{% endif %}
+    </td>
+    <td>
+      {% for space in row.contract.active_spaces if row.contract %}
+      <span class="badge badge-gray">{{ space.quantity }}×{{ space.space_type }}</span>
+      {% endfor %}
+    </td>
+    <td>
+      {% if not calc.get("is_over_limit") and not calc.get("error") %}
+        {% if calc.tier == 1 %}<span class="tier-1">Año 1</span>
+        {% elif calc.tier == 2 %}<span class="tier-2">Año 2</span>
+        {% else %}<span class="tier-3">Full</span>{% endif %}
+      {% else %}—{% endif %}
+    </td>
+    <td class="text-right">
+      {% if not calc.get("is_over_limit") and not calc.get("error") %}
+      $ {{ "{:,.2f}".format(calc.daily_rate_without_iva | float) }}
+      {% else %}—{% endif %}
+    </td>
+    <td class="text-right">
+      {% if not calc.get("is_over_limit") and not calc.get("error") %}
+      $ {{ "{:,.2f}".format(calc.subtotal_without_iva | float) }}
+      {% else %}—{% endif %}
+    </td>
+    <td class="text-right">
+      {% if not calc.get("is_over_limit") and not calc.get("error") %}
+      <strong>$ {{ "{:,.0f}".format(calc.total_with_iva | float) }}</strong>
+      {% set ns.total = ns.total + (calc.total_with_iva | float) %}
+      {% else %}—{% endif %}
+    </td>
+    <td>
+      {% if calc.get("is_over_limit") %}
+      <span class="badge badge-red">Límite 5 años</span>
+      {% elif calc.get("error") %}
+      <span class="badge badge-red" title="{{ calc.error }}">Error</span>
+      {% elif calc.get("is_transition_month") %}
+      <span class="badge badge-orange">Cambio tarifa</span>
+      {% endif %}
+      {% if row.existing_billing %}
+      <span class="badge badge-gray">Existente</span>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" style="text-align:center; color:var(--pico-muted-color);">Sin empresas activas.</td></tr>
+  {% endfor %}
+  </tbody>
+  <tfoot>
+    <tr>
+      <th colspan="5" class="text-right">Total general:</th>
+      <th class="text-right">$ {{ "{:,.0f}".format(ns.total) }}</th>
+      <th></th>
+    </tr>
+  </tfoot>
+</table>
+</div>
+
+<!-- Generate Button -->
+<form method="post" action="/billing/generate" style="margin-top:1.5rem;">
+  <input type="hidden" name="month" value="{{ month }}">
+  <input type="hidden" name="year" value="{{ year }}">
+  {% if has_existing %}
+  <input type="hidden" name="overwrite" value="si">
+  {% endif %}
+  <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+    <button type="submit">
+      {% if has_existing %}⟳ Regenerar y descargar{% else %}⬇ Generar y descargar{% endif %}
+    </button>
+    {% if has_existing %}
+    <a href="/billing/download?month={{ month }}&year={{ year }}&file_type=recaudo" role="button" class="secondary">
+      ⬇ Solo descargar Recaudo
+    </a>
+    <a href="/billing/download?month={{ month }}&year={{ year }}&file_type=credito" role="button" class="secondary outline">
+      ⬇ Solo descargar Crédito
+    </a>
+    {% endif %}
+  </div>
+</form>
+{% endblock %}

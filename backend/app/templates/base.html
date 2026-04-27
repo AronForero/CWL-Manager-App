@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="es" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}Moni-Facturas{% endblock %} — Coworking Labs</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+  <style>
+    :root { --pico-font-size: 15px; }
+    nav.top-nav { padding: 0.75rem 1.5rem; background: var(--pico-primary-background); display: flex; align-items: center; gap: 2rem; }
+    nav.top-nav a { color: var(--pico-primary-inverse); text-decoration: none; font-weight: 600; }
+    nav.top-nav a:hover { opacity: 0.8; }
+    nav.top-nav .brand { font-size: 1.1rem; font-weight: 700; }
+    main { padding: 1.5rem; max-width: 1200px; margin: 0 auto; }
+    .badge { display: inline-block; padding: 0.15em 0.55em; border-radius: 0.3em; font-size: 0.8em; font-weight: 600; }
+    .badge-green { background: #d1fae5; color: #065f46; }
+    .badge-orange { background: #fed7aa; color: #9a3412; }
+    .badge-red { background: #fee2e2; color: #991b1b; }
+    .badge-blue { background: #dbeafe; color: #1e40af; }
+    .badge-gray { background: #f3f4f6; color: #374151; }
+    table { font-size: 0.9rem; }
+    .text-right { text-align: right; }
+    .alert { padding: 0.75rem 1rem; border-radius: 0.4rem; margin-bottom: 1rem; }
+    .alert-warning { background: #fef3c7; border-left: 4px solid #f59e0b; color: #92400e; }
+    .alert-info { background: #dbeafe; border-left: 4px solid #3b82f6; color: #1e40af; }
+    .tier-1 { color: #15803d; font-weight: 600; }
+    .tier-2 { color: #b45309; font-weight: 600; }
+    .tier-3 { color: #374151; font-weight: 600; }
+    small.muted { color: var(--pico-muted-color); }
+  </style>
+</head>
+<body>
+  <nav class="top-nav">
+    <a href="/" class="brand">🏢 Coworking Labs</a>
+    <a href="/companies/">Empresas</a>
+    <a href="/billing/">Facturación</a>
+    <a href="/billing/history">Historial</a>
+  </nav>
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+</body>
+</html>

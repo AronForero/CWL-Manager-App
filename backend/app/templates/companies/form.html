@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}{{ "Editar empresa" if company else "Nueva empresa" }}{% endblock %}
+
+{% block content %}
+<h2>{{ "Editar empresa" if company else "Nueva empresa" }}</h2>
+
+{% if errors %}
+<div class="alert alert-warning">
+  {% for e in errors %}<div>⚠ {{ e }}</div>{% endfor %}
+</div>
+{% endif %}
+
+<form method="post" action="{{ '/companies/' + company.id|string + '/edit' if company else '/companies/new' }}">
+
+  <fieldset>
+    <legend>Datos de la empresa</legend>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+      <label>Nombre <span style="color:red">*</span>
+        <input type="text" name="name" value="{{ company.name if company else '' }}" required maxlength="255">
+      </label>
+      <label>NIT <span style="color:red">*</span>
+        <input type="text" name="nit" value="{{ company.nit if company else '' }}" {% if company %}readonly style="opacity:0.7"{% endif %} required maxlength="20">
+      </label>
+      <label>Email de facturación
+        <input type="email" name="billing_email" value="{{ company.billing_email if company else '' }}" maxlength="255">
+      </label>
+      <label style="grid-column:span 2">Dirección
+        <input type="text" name="address" value="{{ company.address if company else '' }}">
+      </label>
+    </div>
+    <div style="display:flex; gap:2rem; margin-top:0.75rem;">
+      <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+        <input type="checkbox" name="is_affiliated" value="si" {% if company and company.is_affiliated %}checked{% endif %}>
+        ¿Es afiliado a Cámara?
+      </label>
+      <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
+        <input type="checkbox" name="is_fondo_emprender" value="si" id="fe_check"
+          {% if company and company.is_fondo_emprender %}checked{% endif %}
+          onchange="document.getElementById('fe_ref_row').style.display=this.checked?'block':'none'">
+        ¿Fondo Emprender?
+      </label>
+    </div>
+    <div id="fe_ref_row" style="margin-top:0.5rem; {% if not company or not company.is_fondo_emprender %}display:none{% endif %}">
+      <label style="max-width:200px;">REF (código SENA)
+        <input type="number" name="fondo_emprender_ref" value="{{ company.fondo_emprender_ref if company and company.fondo_emprender_ref else '' }}">
+      </label>
+    </div>
+  </fieldset>
+
+  {% if not company %}
+  <fieldset>
+    <legend>Contrato inicial</legend>
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:1rem;">
+      <label>CECO <span style="color:red">*</span>
+        <input type="text" name="ceco" placeholder="W0414-XX" required maxlength="30">
+      </label>
+      <label>N° Contrato
+        <input type="text" name="contract_number" maxlength="50">
+      </label>
+      <label>Fecha de inicio <span style="color:red">*</span>
+        <input type="date" name="start_date" required>
+      </label>
+    </div>
+  </fieldset>
+  {% endif %}
+
+  <div style="display:flex; gap:1rem; margin-top:1rem;">
+    <button type="submit">{{ "Guardar cambios" if company else "Crear empresa" }}</button>
+    <a href="{{ '/companies/' + company.id|string if company else '/companies/' }}" role="button" class="secondary">Cancelar</a>
+  </div>
+</form>
+{% endblock %}

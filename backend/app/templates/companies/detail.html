@@ -1,0 +1,206 @@
+{% extends "base.html" %}
+{% block title %}{{ company.name }}{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h2 style="margin:0;">{{ company.name }}</h2>
+    <small class="muted">NIT {{ company.nit }}</small>
+  </div>
+  <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+    <a href="/companies/{{ company.id }}/edit" role="button" class="secondary" style="padding:0.4rem 1rem; font-size:0.85rem;">Editar</a>
+  </div>
+</div>
+
+<div style="display:grid; grid-template-columns: 1fr 1fr; gap:1rem; margin-top:1.5rem;">
+
+  <!-- Company Info -->
+  <article style="margin:0;">
+    <header><strong>Información</strong></header>
+    <table style="margin:0;">
+      <tbody>
+        <tr><th style="width:40%">Email factura</th><td>{{ company.billing_email or "—" }}</td></tr>
+        <tr><th>Dirección</th><td>{{ company.address or "—" }}</td></tr>
+        <tr><th>Afiliado</th><td>{{ "Sí" if company.is_affiliated else "No" }}</td></tr>
+        <tr><th>Fondo Emprender</th><td>{{ "Sí" if company.is_fondo_emprender else "No" }}{% if company.is_fondo_emprender and company.fondo_emprender_ref %} (REF: {{ company.fondo_emprender_ref }}){% endif %}</td></tr>
+      </tbody>
+    </table>
+  </article>
+
+  <!-- Contract Info -->
+  <article style="margin:0;">
+    <header>
+      <strong>Contrato activo</strong>
+      {% if contract %}
+      <span class="badge badge-green" style="float:right;">Activo</span>
+      {% else %}
+      <span class="badge badge-gray" style="float:right;">Sin contrato</span>
+      {% endif %}
+    </header>
+    {% if contract %}
+    <table style="margin:0;">
+      <tbody>
+        <tr><th style="width:40%">CECO</th><td>{{ contract.ceco }}</td></tr>
+        <tr><th>N° Contrato</th><td>{{ contract.contract_number or "—" }}</td></tr>
+        <tr><th>Inicio</th><td>{{ contract.start_date.strftime("%d/%m/%Y") }}</td></tr>
+        <tr><th>Meses activos</th><td>{{ total_months }}</td></tr>
+        <tr><th>Tarifa actual</th>
+          <td>
+            {% if tier == 1 %}<span class="tier-1">Año 1 — 50% descuento</span>
+            {% elif tier == 2 %}<span class="tier-2">Año 2 — 25% descuento</span>
+            {% else %}<span class="tier-3">Full (año 3+)</span>{% endif %}
+          </td>
+        </tr>
+        <tr><th>Meses restantes</th>
+          <td>
+            {% if remaining_months <= 6 and remaining_months > 0 %}
+            <span style="color:#b45309; font-weight:600;">{{ remaining_months }} ⚠</span>
+            {% elif remaining_months == 0 %}
+            <span style="color:#991b1b; font-weight:600;">Límite alcanzado</span>
+            {% else %}
+            {{ remaining_months }}
+            {% endif %}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    {% else %}
+    <p>Esta empresa no tiene contrato activo.</p>
+    <form method="post" action="/companies/{{ company.id }}/reactivate">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+        <label>CECO <input type="text" name="ceco" required></label>
+        <label>N° Contrato <input type="text" name="contract_number"></label>
+        <label>Fecha inicio <input type="date" name="start_date" required></label>
+      </div>
+      <button type="submit" style="margin-top:0.5rem;">Reactivar empresa</button>
+    </form>
+    {% endif %}
+  </article>
+</div>
+
+<!-- Spaces -->
+{% if contract %}
+<article style="margin-top:1rem;">
+  <header><strong>Espacios contratados</strong></header>
+  <table>
+    <thead>
+      <tr><th>Tipo</th><th>Cantidad</th><th>Desde</th><th>Estado</th><th>Acción</th></tr>
+    </thead>
+    <tbody>
+    {% for space in all_spaces %}
+    <tr style="{% if not space.is_active %}opacity:0.5;{% endif %}">
+      <td>Tipo {{ space.space_type }}</td>
+      <td>{{ space.quantity }}</td>
+      <td>{{ space.start_date.strftime("%d/%m/%Y") }}</td>
+      <td>
+        {% if space.is_active %}<span class="badge badge-green">Activo</span>
+        {% else %}<span class="badge badge-gray">Inactivo ({{ space.end_date.strftime("%d/%m/%Y") if space.end_date else "—" }})</span>{% endif %}
+      </td>
+      <td>
+        {% if space.is_active %}
+        <form method="post" action="/companies/{{ company.id }}/spaces/{{ space.id }}/remove" style="display:inline;">
+          <input type="hidden" name="end_date" value="{{ today }}">
+          <button type="submit" class="secondary outline" style="padding:0.2rem 0.6rem; font-size:0.8rem;"
+            onclick="return confirm('¿Eliminar este espacio?')">Quitar</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% else %}
+    <tr><td colspan="5" style="text-align:center; color:var(--pico-muted-color);">Sin espacios registrados.</td></tr>
+    {% endfor %}
+    </tbody>
+  </table>
+
+  <details style="margin-top:0.5rem;">
+    <summary style="cursor:pointer; font-weight:600;">+ Agregar espacio</summary>
+    <form method="post" action="/companies/{{ company.id }}/spaces/add" style="margin-top:0.75rem;">
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:flex-end;">
+        <label style="flex:1; min-width:120px;">
+          Tipo
+          <select name="space_type" required>
+            <option value="A">A — Móvil</option>
+            <option value="B">B — Semi-privado</option>
+            <option value="C">C — Oficina 6p</option>
+            <option value="D">D — Oficina 7p</option>
+          </select>
+        </label>
+        <label style="flex:1; min-width:100px;">
+          Cantidad
+          <input type="number" name="quantity" value="1" min="1" required>
+        </label>
+        <label style="flex:1; min-width:140px;">
+          Fecha inicio
+          <input type="date" name="start_date" required>
+        </label>
+        <button type="submit" style="margin-bottom:0.25rem;">Agregar</button>
+      </div>
+    </form>
+  </details>
+</article>
+
+<!-- Deactivate -->
+{% if contract.is_active %}
+<details style="margin-top:0.5rem;">
+  <summary style="cursor:pointer; color:#991b1b; font-weight:600;">⚠ Desvincular empresa</summary>
+  <form method="post" action="/companies/{{ company.id }}/deactivate" style="margin-top:0.75rem;">
+    <label>Fecha de desvinculación
+      <input type="date" name="end_date">
+    </label>
+    <button type="submit" class="contrast" onclick="return confirm('¿Desvincular esta empresa? Esto cerrará el contrato actual.')">
+      Confirmar desvinculación
+    </button>
+  </form>
+</details>
+{% endif %}
+{% endif %}
+
+<!-- Billing History -->
+<article style="margin-top:1rem;">
+  <header><strong>Historial de facturación</strong></header>
+  {% if billings %}
+  <table>
+    <thead>
+      <tr><th>Mes/Año</th><th class="text-right">Total c/IVA</th><th>Estado</th><th>Referencia</th><th>Acción</th></tr>
+    </thead>
+    <tbody>
+    {% for b in billings %}
+    <tr>
+      <td>{{ b.billing_month | string | zfill(2) }}/{{ b.billing_year }}</td>
+      <td class="text-right">$ {{ "{:,.0f}".format(b.total_with_iva | float) }}</td>
+      <td>
+        {% if b.status == "pagado" %}<span class="badge badge-green">Pagado</span>
+        {% elif b.status == "revisar" %}<span class="badge badge-red">Revisar</span>
+        {% else %}<span class="badge badge-orange">Pendiente</span>{% endif %}
+      </td>
+      <td>{{ b.order_reference or "—" }}</td>
+      <td>
+        {% if b.status != "pagado" %}
+        <form method="post" action="/payments/{{ b.id }}/mark-paid" style="display:flex; gap:0.4rem;">
+          <input type="text" name="order_reference" placeholder="Ref. orden" style="padding:0.2rem 0.4rem; font-size:0.8rem; width:100px;">
+          <input type="hidden" name="redirect_to" value="/companies/{{ company.id }}">
+          <button type="submit" style="padding:0.2rem 0.6rem; font-size:0.8rem; background:#15803d; border-color:#15803d;">✓ Pago</button>
+        </form>
+        {% else %}
+        <form method="post" action="/payments/{{ b.id }}/mark-pending" style="display:inline;">
+          <input type="hidden" name="redirect_to" value="/companies/{{ company.id }}">
+          <button type="submit" class="secondary outline" style="padding:0.2rem 0.6rem; font-size:0.8rem;">↩ Revertir</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+  <p style="color:var(--pico-muted-color);">Sin historial de facturación.</p>
+  {% endif %}
+</article>
+
+<script>
+// Set today's date as default for end_date inputs
+document.querySelectorAll('input[name="end_date"]').forEach(i => {
+  if (!i.value) i.value = new Date().toISOString().split('T')[0];
+});
+</script>
+{% endblock %}

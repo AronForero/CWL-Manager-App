@@ -1,0 +1,80 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<h2>Dashboard</h2>
+
+<div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px,1fr)); gap:1rem; margin-bottom:1.5rem;">
+  <article style="margin:0; padding:1rem;">
+    <div style="font-size:2rem; font-weight:700;">{{ total_active }}</div>
+    <small>Empresas activas</small>
+  </article>
+  <article style="margin:0; padding:1rem;">
+    <div style="font-size:2rem; font-weight:700;">{{ total_companies }}</div>
+    <small>Total históricas</small>
+  </article>
+  <article style="margin:0; padding:1rem;">
+    <div style="font-size:2rem; font-weight:700;">{{ billing_count }}</div>
+    <small>Facturas {{ next_month_abbr }} {{ next_year }}</small>
+  </article>
+  <article style="margin:0; padding:1rem;">
+    <div style="font-size:2rem; font-weight:700; color: {% if status_counts.pendiente > 0 %}#b45309{% else %}#15803d{% endif %};">
+      {{ status_counts.pendiente }}
+    </div>
+    <small>Pendientes de pago</small>
+  </article>
+</div>
+
+{% if near_limit %}
+<div class="alert alert-warning">
+  <strong>⚠️ Empresas próximas al límite de 5 años:</strong>
+  <ul style="margin:0.5rem 0 0 1rem;">
+    {% for item in near_limit %}
+    <li>
+      <a href="/companies/{{ item.company.id }}">{{ item.company.name }}</a>
+      — {{ item.remaining }} mes{{ "es" if item.remaining != 1 else "" }} restante{{ "s" if item.remaining != 1 else "" }}
+    </li>
+    {% endfor %}
+  </ul>
+</div>
+{% endif %}
+
+<div style="display:flex; gap:1rem; flex-wrap:wrap; align-items:center; margin-bottom:1.5rem;">
+  <h3 style="margin:0;">Facturación {{ next_month_abbr }} {{ next_year }}</h3>
+  {% if billing_generated %}
+  <span class="badge badge-green">✓ Generada</span>
+  <a href="/billing/download?month={{ next_month }}&year={{ next_year }}&file_type=recaudo" role="button" style="padding:0.4rem 1rem; font-size:0.85rem;">
+    ⬇ Descargar Recaudo
+  </a>
+  <a href="/billing/download?month={{ next_month }}&year={{ next_year }}&file_type=credito" role="button" class="secondary" style="padding:0.4rem 1rem; font-size:0.85rem;">
+    ⬇ Descargar Crédito
+  </a>
+  {% else %}
+  <span class="badge badge-gray">Sin generar</span>
+  <a href="/billing/?month={{ next_month }}&year={{ next_year }}" role="button" style="padding:0.4rem 1rem; font-size:0.85rem;">
+    Generar ahora →
+  </a>
+  {% endif %}
+</div>
+
+{% if status_counts.pagado > 0 or status_counts.pendiente > 0 or status_counts.revisar > 0 %}
+<div style="display:flex; gap:1rem; flex-wrap:wrap;">
+  {% if status_counts.pagado %}
+  <span class="badge badge-green">{{ status_counts.pagado }} pagado{{ "s" if status_counts.pagado != 1 else "" }}</span>
+  {% endif %}
+  {% if status_counts.pendiente %}
+  <span class="badge badge-orange">{{ status_counts.pendiente }} pendiente{{ "s" if status_counts.pendiente != 1 else "" }}</span>
+  {% endif %}
+  {% if status_counts.revisar %}
+  <span class="badge badge-red">{{ status_counts.revisar }} por revisar</span>
+  {% endif %}
+</div>
+{% endif %}
+
+<hr>
+<p style="margin-top:1rem;">
+  <a href="/companies/new" role="button" class="secondary" style="padding:0.4rem 1rem; font-size:0.85rem;">+ Nueva empresa</a>
+  &nbsp;
+  <a href="/companies/">Ver todas las empresas →</a>
+</p>
+{% endblock %}
