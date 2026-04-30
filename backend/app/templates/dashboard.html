@@ -72,9 +72,65 @@
 {% endif %}
 
 <hr>
-<p style="margin-top:1rem;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem; margin-top:1rem;">
+  <h3 style="margin:0;">Empresas activas ({{ total_active }})</h3>
   <a href="/companies/new" role="button" class="secondary" style="padding:0.4rem 1rem; font-size:0.85rem;">+ Nueva empresa</a>
-  &nbsp;
-  <a href="/companies/">Ver todas las empresas →</a>
+</div>
+
+<div style="overflow-x:auto;">
+<table>
+  <thead>
+    <tr>
+      <th>Empresa</th>
+      <th>CECO</th>
+      <th>Espacios</th>
+      <th>Tarifa</th>
+      <th>Meses</th>
+      <th></th>
+    </tr>
+  </thead>
+  <tbody>
+  {% for row in active_rows %}
+  {% set c = row.company %}
+  <tr>
+    <td>
+      <a href="/companies/{{ c.id }}">{{ c.name }}</a>
+      {% if c.is_fondo_emprender %}<span class="badge badge-blue" title="Fondo Emprender">FE</span>{% endif %}
+    </td>
+    <td>{{ row.contract.ceco if row.contract else "—" }}</td>
+    <td>
+      {% for space in row.spaces %}
+      <span class="badge badge-gray">{{ space.quantity }}×{{ space.space_type }}</span>
+      {% endfor %}
+      {% if not row.spaces %}—{% endif %}
+    </td>
+    <td>
+      {% if row.over_limit %}
+      <span class="tier-1" style="color:#991b1b;">Límite 5 años</span>
+      {% elif row.tier == 1 %}
+      <span class="tier-1">Año 1 (50%)</span>
+      {% elif row.tier == 2 %}
+      <span class="tier-2">Año 2 (25%)</span>
+      {% else %}
+      <span class="tier-3">Full</span>
+      {% endif %}
+    </td>
+    <td>
+      {{ row.total_months }}
+      {% if row.near_limit %}
+      <span class="badge badge-orange" title="{{ row.remaining_months }} meses restantes">⚠ {{ row.remaining_months }}m</span>
+      {% endif %}
+    </td>
+    <td><a href="/companies/{{ c.id }}">Ver →</a></td>
+  </tr>
+  {% else %}
+  <tr><td colspan="6" style="text-align:center; color:var(--pico-muted-color);">Sin empresas activas.</td></tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+<p style="margin-top:0.75rem;">
+  <a href="/companies/">Ver lista completa (historial) →</a>
 </p>
 {% endblock %}

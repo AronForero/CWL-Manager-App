@@ -43,7 +43,7 @@
 ## Estructura del proyecto
 
 ```
-Moni-facturas/
+CWL-MANAGER-APP/
 ├── docker-compose.yml          # Servicios: app + db
 ├── .env                        # Variables de entorno (creado desde .env.example)
 ├── .env.example                # Plantilla de variables de entorno
@@ -109,7 +109,7 @@ Valores sembrados:
 | A | 250,879 | 376,319 | 501,759 |
 | B | 430,079 | 645,118 | 860,158 |
 | C | 1,003,517 | 1,505,276 | 2,007,035 |
-| D | 1,003,517 | 1,505,276 | 2,007,035 |
+| D | 1,254,397 | 1,881,595 | 2,508,794 |
 
 #### `companies`
 

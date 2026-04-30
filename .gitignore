@@ -1,3 +1,7 @@
+# Custom
+docs/ROADMAP-v2.md 
+Proceso-facturacion.md
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

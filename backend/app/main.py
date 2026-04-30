@@ -5,12 +5,12 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy.orm import Session, joinedload
 
 from .database import Base, engine, get_db
-from .models import Company, Contract, TariffRate, MonthlyBilling
-from .routers import companies, billing, payments
+from .models import Company, Contract, MonthlyBilling, TariffRate
+from .routers import billing, companies, payments
 from .services import tariff as tariff_svc
 from .services.holiday_calc import month_abbr, seed_holidays
 
-app = FastAPI(title="Moni-Facturas", docs_url=None, redoc_url=None)
+app = FastAPI(title="Coworking Labs", docs_url=None, redoc_url=None)
 
 templates = Jinja2Templates(directory="app/templates")
 
@@ -63,10 +63,28 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
 
     active_companies = [c for c in companies if c.active_contract]
     near_limit = []
+    active_rows = []
     for c in active_companies:
+        contract = c.active_contract
+        total_months = tariff_svc.months_active_total(c)
+        tier = tariff_svc._tier_for_months(total_months - 1) if total_months > 0 else 1
         remaining = tariff_svc.months_remaining(c)
         if 0 < remaining <= 6:
             near_limit.append({"company": c, "remaining": remaining})
+        active_rows.append({
+            "company": c,
+            "contract": contract,
+            "spaces": contract.active_spaces if contract else [],
+            "total_months": total_months,
+            "tier": tier,
+            "remaining_months": remaining,
+            "near_limit": 0 < remaining <= 6,
+            "over_limit": remaining == 0 and total_months >= tariff_svc.MAX_MONTHS,
+        })
+    active_rows.sort(
+        key=lambda r: r["contract"].start_date if r["contract"] else date.min,
+        reverse=True,
+    )
 
     billing_this_month = db.query(MonthlyBilling).filter(
         MonthlyBilling.billing_month == next_month,
@@ -90,5 +108,6 @@ def dashboard(request: Request, db: Session = Depends(get_db)):
             "billing_count": len(billing_this_month),
             "status_counts": status_counts,
             "near_limit": near_limit,
+            "active_rows": active_rows,
         },
     )
